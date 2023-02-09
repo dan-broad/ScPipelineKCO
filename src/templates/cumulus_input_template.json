@@ -4,6 +4,8 @@
   "cumulus.output_name": "{output_name}",
   "cumulus.min_umis": "{min_umis}",
   "cumulus.min_genes": "{min_genes}",
+  "cumulus.minimum_number_of_genes": "{min_genes}",
+  "cumulus.max_genes": 50000,
   "cumulus.percent_mito": "{percent_mito}",
   "cumulus.infer_doublets": true,
   "cumulus.run_louvain": false,
