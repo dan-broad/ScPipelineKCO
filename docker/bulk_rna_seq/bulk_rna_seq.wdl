@@ -7,7 +7,7 @@ workflow bulk_rna_seq {
     String output_directory
     
     # BCL Convert args
-    File? sample_sheet
+    File? bcl_sample_sheet
     String input_data_type
     String input_bcl_directory = ''
     String bcl_convert_version = "3.10.5"
@@ -29,20 +29,18 @@ workflow bulk_rna_seq {
 
     # COMPUTE
     Int preemptible = 2
-    Int disk_space = 1500
+    Int disk_space = 500
     Int num_cpu = 32
     String memory = "120G"
     String zones = "us-east1-d us-west1-a us-west1-b"
-    String docker_registry = "gcr.io/microbiome-xavier"
   }
 
-  String docker_registry_stripped = sub(docker_registry, "/+$", "")
   String output_directory_stripped = sub(output_directory, "/+$", "")
 
   call run_bcl_convert_and_define_read_pairs {
     input:
       input_data_type = input_data_type,
-      sample_sheet = sample_sheet,
+      bcl_sample_sheet = bcl_sample_sheet,
       input_bcl_directory = sub(input_bcl_directory, "/+$", ""),
       output_directory = output_directory_stripped,
       bcl_convert_version = bcl_convert_version,
@@ -55,7 +53,6 @@ workflow bulk_rna_seq {
       memory = memory,
       disk_space = disk_space,
       preemptible = preemptible,
-      docker_registry = docker_registry_stripped
   }
 
   # build reference transcriptome index for kallisto
@@ -132,7 +129,7 @@ workflow bulk_rna_seq {
 
 task run_bcl_convert_and_define_read_pairs {
   input {
-    File? sample_sheet
+    File? bcl_sample_sheet
     String input_bcl_directory
     String output_directory
     Boolean no_lane_splitting
@@ -146,7 +143,6 @@ task run_bcl_convert_and_define_read_pairs {
     String memory
     Int disk_space
     Int preemptible
-    String docker_registry
   }
 
   String run_id = basename(input_bcl_directory)
@@ -162,7 +158,7 @@ task run_bcl_convert_and_define_read_pairs {
 
       bcl-convert --bcl-input-directory ~{run_id} \
                   --output-directory fastq \
-                  --sample-sheet  ~{sample_sheet} \
+                  --sample-sheet  ~{bcl_sample_sheet} \
                   ~{true="--no-lane-splitting true" false=""  no_lane_splitting} \
                   ~{true="--strict-mode true" false=""  strict_mode}
 
@@ -193,7 +189,7 @@ task run_bcl_convert_and_define_read_pairs {
     preemptible: preemptible
     bootDiskSizeGb: 12
     disks: "local-disk ${disk_space} HDD"
-    docker: "${docker_registry}/bcl_convert:${bcl_convert_version}"
+    docker: "gcr.io/microbiome-xavier/bcl_convert:${bcl_convert_version}"
     cpu: num_cpu
     zones: zones
     memory: memory

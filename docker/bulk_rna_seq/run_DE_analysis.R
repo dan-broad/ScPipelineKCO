@@ -379,9 +379,9 @@ run_sleuth_de <- function(transcript_counts_dir, samples_described_path, samples
       qc <- fromJSON(file.path(directory, 'run_info.json'))
       # get percentage pseudoaligned
       percentage_aligned <- qc$p_pseudoaligned
-      # remove samples with < 30% alignment
+      # remove samples with < percentage_aligned_threshold alignment
       if (percentage_aligned < percentage_aligned_threshold) {
-          cat(sprintf('Removed sample %s since it had < 30 percent alignment \n\n', sample_name))
+          cat(sprintf('Removed sample %s since it had < %s percent alignment \n\n', sample_name, percentage_aligned_threshold))
           s2c <- s2c[sample != sample_name]
       }
     }
