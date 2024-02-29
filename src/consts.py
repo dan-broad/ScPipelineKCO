@@ -1,0 +1,5 @@
+MULTIOME = 'multiome'
+RNA = 'rna'
+ATAC = 'atac'
+TERRA_POLL_SPACER = 300
+TERRA_TIMEOUT = 18000

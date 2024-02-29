@@ -12,12 +12,12 @@
 
 dir_name="tutorial"
 gcp_bucket_basedir="gs://fc-secure-15bf93cd-d43c-4a70-b7de-0ee36bf3a52a/${dir_name}"
-sample_tracking_file="${gcp_bucket_basedir}/sampletracking_small.csv"
-project_name="tutorial"
-email="dchafamo@broadinstitute.org"
+sample_tracking_file="${gcp_bucket_basedir}/test_bcl_convert.csv"
+project_name="test"
+email="dsrirang@broadinstitute.org"
 workspace="'kco-tech/sc_pipeline_tutorial'"
 count_matrix_name="raw_feature_bc_matrix.h5"
-steps="MKFASTQ,COUNT,CUMULUS,CELLBENDER,CELLBENDER_CUMULUS"
+steps="BCL_CONVERT,COUNT,CUMULUS,CELLBENDER,CELLBENDER_CUMULUS"
 mkfastq_memory="120G"
 mkfastq_diskspace="1500"
 cellranger_method="broadinstitute:cumulus:Cellranger:2.1.1"
@@ -26,6 +26,17 @@ cellbender_method="broadinstitute:cumulus:CellBender:2.3.0"
 cellranger_version="7.0.1"
 cellranger_atac_version="2.1.0"
 cellranger_arc_version="2.0.1"
+bcl_convert_method="genomics-xavier-fc/bcl_convert/11"
+bcl_convert_workspace="genomics-xavier-fc/genomics-xavier"
+bcl_convert_version="4.2.7"
+bcl_convert_disk_space="1500"
+bcl_convert_cpu="32"
+bcl_convert_strict_mode=false
+bcl_convert_file_format_version="2"
+bcl_convert_memory="120"
+bcl_convert_lane_splitting=true
+bcl_convert_docker_registry="gcr.io/microbiome-xavier"
+bcl_convert_num_lanes_flowcell="0" # Optional: only needed when using * in sample sheet for lanes and no_lane_splitting == false
 
 current_time=$(date "+%Y.%m.%d-%H.%M.%S")
 
@@ -33,7 +44,7 @@ dsub --provider google-cls-v2 --project "microbiome-xavier" --regions us-east1 \
   --service-account "scrnaseq-pipeline@microbiome-xavier.iam.gserviceaccount.com" \
   --image "gcr.io/microbiome-xavier/conda-alto" --disk-size '10' --timeout '2d'\
   --logging "$gcp_bucket_basedir/logs/" \
-  --command "wget https://github.com/dan-broad/scrnaseq_pipeline/archive/master.zip && unzip master.zip && cd scrnaseq_pipeline-master/src && python sc_pipeline.py" \
+  --command "wget https://github.com/klarman-cell-observatory/scrnaseq_pipeline/archive/master.zip && unzip master.zip && cd scrnaseq_pipeline-master/src && python sc_pipeline.py" \
   --output PIPELINE_LOGS="$gcp_bucket_basedir/logs/execution_$current_time.log" \
   --input SAMPLE_TRACKING_FILE="$sample_tracking_file" \
   --env PROJECT_NAME="$project_name" \
@@ -49,4 +60,15 @@ dsub --provider google-cls-v2 --project "microbiome-xavier" --regions us-east1 \
   --env CELLRANGER_ATAC_VERSION="$cellranger_atac_version" \
   --env CELLRANGER_ARC_VERSION="$cellranger_arc_version" \
   --env MKFASTQ_DISKSPACE="$mkfastq_diskspace" \
-  --env MKFASTQ_MEMORY="$mkfastq_memory"
+  --env MKFASTQ_MEMORY="$mkfastq_memory" \
+  --env BCL_CONVERT_METHOD="$bcl_convert_method" \
+  --env BCL_CONVERT_WORKSPACE="$bcl_convert_workspace" \
+  --env BCL_CONVERT_VERSION="$bcl_convert_version" \
+  --env BCL_CONVERT_DISK_SPACE="$bcl_convert_disk_space" \
+  --env BCL_CONVERT_MEMORY="$bcl_convert_memory" \
+  --env BCL_CONVERT_NUM_CPU="$bcl_convert_cpu" \
+  --env BCL_CONVERT_STRICT_MODE="$bcl_convert_strict_mode" \
+  --env BCL_CONVERT_FILE_FORMAT_VERSION="$bcl_convert_file_format_version" \
+  --env NUM_LANES_FLOWCELL="$bcl_convert_num_lanes_flowcell" \
+  --env BCL_CONVERT_DOCKER_REGISTRY="$bcl_convert_docker_registry" \
+  --env BCL_CONVERT_LANE_SPLITTING="$bcl_convert_lane_splitting" \ 
