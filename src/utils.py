@@ -3,14 +3,13 @@ import os
 import re
 import time
 import sys
-import firecloud.api as fapi
 import subprocess
 import threading
 import json
-import pandas as pd 
 from string import Template
-import re
-from consts import *
+import firecloud.api as fapi
+import pandas as pd
+from consts import TERRA_POLL_SPACER, TERRA_TIMEOUT
 
 alto_lock = threading.Lock()
 
@@ -61,7 +60,7 @@ def build_sample_dicts(sample_tracking, sampleids):
     cumulus_dict = dict()
     cellbender_dict = dict()
     cellranger_dict = dict()
-    for index, row in sample_tracking.iterrows():
+    for _, row in sample_tracking.iterrows():
         sample_dict[row['sampleid']].append(row['Sample'])
         mkfastq_dict[row['Sample']] = [row['Lane'], row['Index'], row['reference'], row['chemistry'], row['method']]
         cumulus_dict[row['sampleid']] = [row['min_umis'], row['min_genes'], row['percent_mito']]
@@ -148,16 +147,16 @@ def create_bcl_convert_sample_sheet(path, sub_method, env_vars, sample_tracking)
         sample_sheet = get_atac_sample_sheet(env_vars, sample_tracking, env_vars['num_lanes'])
     elif sub_method == 'rna':
         sample_sheet = get_rna_sample_sheet(env_vars, sample_tracking, env_vars['num_lanes'])
-    
+
     with open(path, 'w') as f:
         f.write(sample_sheet)
 
 def get_rna_sample_sheet(env_vars, sample_tracking, num_lanes):
-    dir = os.path.dirname(os.path.realpath(__file__))
-    with open(f'{dir}/templates/bcl_convert_gex_sample_sheet_template.csv') as f:
+    file_dir = os.path.dirname(os.path.realpath(__file__))
+    with open(f'{file_dir}/templates/bcl_convert_gex_sample_sheet_template.csv') as f:
         template = Template(f.read())
         sample_sheet = template.safe_substitute(env_vars)
-    
+
     columns = ["sampleid", "Index", "Index2"]
     columns = columns + ["Lane"] if not env_vars.get("no_lane_splitting") else columns
     samples_with_indices = sample_tracking[columns]
@@ -169,8 +168,8 @@ def get_rna_sample_sheet(env_vars, sample_tracking, num_lanes):
     return sample_sheet + samples_with_indices.to_csv(index=False,)
 
 def get_atac_sample_sheet(env_vars, sample_tracking, num_lanes):
-    dir = os.path.dirname(os.path.realpath(__file__))
-    with open(f'{dir}/templates/bcl_convert_atac_sample_sheet_template.csv') as f:
+    file_dir = os.path.dirname(os.path.realpath(__file__))
+    with open(f'{file_dir}/templates/bcl_convert_atac_sample_sheet_template.csv') as f:
         template = Template(f.read())
         sample_sheet = template.safe_substitute(env_vars)
 
@@ -188,33 +187,33 @@ def get_atac_sample_sheet(env_vars, sample_tracking, num_lanes):
 def flatten_sample_indices(sample_tracking):
     flattened = pd.DataFrame(columns=["Lane", "Sample_ID", "index"])
     for _, r in sample_tracking.iterrows():
-        sampleID = r['sampleid']
+        sample_id = r['sampleid']
         sample_df = pd.DataFrame([
-            [r['Lane'], sampleID, r['Index']],
-            [r['Lane'], sampleID, r['Index2']],
-            [r['Lane'], sampleID, r['Index3']],
-            [r['Lane'], sampleID, r['Index4']],
+            [r['Lane'], sample_id, r['Index']],
+            [r['Lane'], sample_id, r['Index2']],
+            [r['Lane'], sample_id, r['Index3']],
+            [r['Lane'], sample_id, r['Index4']],
         ], columns=["Lane", "Sample_ID", "index"])
         flattened = pd.concat([flattened, sample_df], ignore_index=True)
     return flattened
 
 def apply_lane_splits(sample_tracking, num_lanes):
     lane_split = []
-    
+
     for _, sample in sample_tracking.iterrows():
-        laneVal = str(sample['Lane'])
+        lane_val = str(sample['Lane'])
         drop_lane = sample.drop(labels=['Lane'])
-        if len(laneVal) == 1 and laneVal.isdecimal(): # no need to split
+        if len(lane_val) == 1 and lane_val.isdecimal(): # no need to split
             lane_split.append([sample['Lane']] + drop_lane.to_list())
-        elif '-' in laneVal:
-            start, end = laneVal.split('-')
+        elif '-' in lane_val:
+            start, end = lane_val.split('-')
             r = range(int(start), int(end)+1)
             for i in r:
                 lane_split.append([i] + drop_lane.to_list())
-        elif laneVal == '*':
+        elif lane_val == '*':
             for i in range(num_lanes):
                 lane_split.append([i+1] + drop_lane.to_list())
-        
+
     return pd.DataFrame(lane_split, columns=['Lane'] + sample_tracking.columns.drop('Lane').to_list())
 
 def create_bcl_convert_params(file_path, env_vars, input_dir, fastq_output_dir, sample_sheet_path):
@@ -234,23 +233,23 @@ def create_bcl_convert_params(file_path, env_vars, input_dir, fastq_output_dir, 
                 "bclconvert.strict_mode": env_vars['strict_mode']
                 # "bclconvert.zones": "${}"
             }
-        
+
         contents = json.dumps(params, indent=4)
         f.write(contents)
-    
+
 def get_bcl_convert_vars(env_vars, sample_sheet, flow_cell):
-    vars = env_vars.copy()
-    vars['run_name'] = flow_cell
-    vars['instrument_platform'] = sample_sheet['instrument_platform'][0]
-    vars['instrument_type'] = sample_sheet['instrument_type'][0]
-    vars['read1_cycles'] = int(sample_sheet['read1_cycles'][0])
-    vars['read2_cycles'] = int(sample_sheet['read2_cycles'][0])
-    vars['index1_cycles'] = int(sample_sheet['index1_cycles'][0])
-    vars['index2_cycles'] = int(sample_sheet['index2_cycles'][0])
-    vars['create_fastq_for_index_reads'] = get_boolean_val(sample_sheet['create_fastq_for_index_reads'][0])
-    vars['trim_umi'] = get_boolean_val(sample_sheet['trim_umi'][0])
-    vars['override_cycles'] = sample_sheet['override_cycles'][0]
-    return vars
+    bcl_convert_vars = env_vars.copy()
+    bcl_convert_vars['run_name'] = flow_cell
+    bcl_convert_vars['instrument_platform'] = sample_sheet['instrument_platform'][0]
+    bcl_convert_vars['instrument_type'] = sample_sheet['instrument_type'][0]
+    bcl_convert_vars['read1_cycles'] = int(sample_sheet['read1_cycles'][0])
+    bcl_convert_vars['read2_cycles'] = int(sample_sheet['read2_cycles'][0])
+    bcl_convert_vars['index1_cycles'] = int(sample_sheet['index1_cycles'][0])
+    bcl_convert_vars['index2_cycles'] = int(sample_sheet['index2_cycles'][0])
+    bcl_convert_vars['create_fastq_for_index_reads'] = get_boolean_val(sample_sheet['create_fastq_for_index_reads'][0])
+    bcl_convert_vars['trim_umi'] = get_boolean_val(sample_sheet['trim_umi'][0])
+    bcl_convert_vars['override_cycles'] = sample_sheet['override_cycles'][0]
+    return bcl_convert_vars
 
 def add_lane_to_fastq(file_name):
     if not re.match("^.*L\d{3}.*$", file_name):

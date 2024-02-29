@@ -3,11 +3,11 @@ import os
 from datetime import datetime
 from pathlib import Path
 from utils import *
-from consts import *
+from consts import MULTIOME
 
 def upload_bcl_convert_input(sample_tracking, buckets, directories, env_vars):
     logging.info("STEP 1 | Upload bcl convert samplesheet to Google Cloud Storage Bucket. ")
-    
+
     fc = sample_tracking['flowcell'].to_list()[0]
     samples_in_dir = sample_tracking.where(sample_tracking['flowcell'] == fc).dropna(how='all')
     method = samples_in_dir['sub_method'].to_list()[0]
@@ -16,17 +16,17 @@ def upload_bcl_convert_input(sample_tracking, buckets, directories, env_vars):
     os.makedirs(directory, exist_ok=True)
     input_paths = {"bucket": bucket_path, "directory": directory}
 
-    vars = get_bcl_convert_vars(env_vars, samples_in_dir, fc)
+    bcl_convert_vars = get_bcl_convert_vars(env_vars, samples_in_dir, fc)
     file_name = "sample_sheet.csv"
     path = f"{directory}/{file_name}"
-    create_bcl_convert_sample_sheet(path, method, vars, samples_in_dir)
+    create_bcl_convert_sample_sheet(path, method, bcl_convert_vars, samples_in_dir)
     input_dir = samples_in_dir['seq_dir'][0]
     create_bcl_convert_params(f"{directory}/inputs.json", env_vars, input_dir, f"{buckets['fastqs']}/{method}", f"{bucket_path}/{file_name}")
 
     upload_bcl_convert_file = "%s/upload_%s.sh" % (directories['bcl_convert'], datetime.now().isoformat())
     with open(upload_bcl_convert_file, "w") as f:
-        f.write("gsutil cp %s/* %s\n" % (input_paths['directory'], input_paths['bucket']))
-            
+        f.write(f"gsutil cp {input_paths['directory']}/* {input_paths['bucket']}\n")
+
     bash_execute_file(upload_bcl_convert_file)
     return input_paths
 
@@ -39,19 +39,19 @@ def run_bcl_convert(directories, buckets, sample_paths, bcl_convert_method, bcl_
         method = directory_path.parent.name
         input_file = f"{directory_path}/inputs.json"
         f.write(f"alto terra run -m {bcl_convert_method} -i {input_file} -w {bcl_convert_workspace} --bucket-folder {bucket_fastq_path.name}/{method} --no-cache\n")
-    
+
     logging.info("STEP 2 | Initiate Terra bcl_convert pipeline via alto. ")
     execute_alto_command(run_alto_file)
 
 def get_fastq_paths(directories, buckets, sample_tracking):
-    get_fastq_paths_file = "%s/get_fastqs_%s.sh" % (directories['bcl_convert'], datetime.now().isoformat())
-    fastq_paths_file = "%s/fastq_dirs_%s.txt" % (directories['fastqs'], datetime.now().isoformat()) # using runtime here to not create multiple files that we have to write then read 
+    get_fastq_paths_file = f"{directories['bcl_convert']}/get_fastqs_{datetime.now().isoformat()}.sh"
+    fastq_paths_file = f"{directories['fastqs']}/fastq_dirs_{datetime.now().isoformat()}.txt" # using runtime here to not create multiple files that we have to write then read 
     with open(get_fastq_paths_file, "w") as f:
         for _, r in sample_tracking.iterrows():
             run_id = os.path.basename(r['seq_dir'])
-            sampleID = r['sampleid']
+            sample_id = r['sampleid']
             base_path = f"{buckets['fastqs']}/{r['sub_method']}/{run_id}_fastqs/sample_fastqs"
-            cmd = f"gsutil ls '{base_path}/{sampleID}**' >> {fastq_paths_file}"
+            cmd = f"gsutil ls '{base_path}/{sample_id}**' >> {fastq_paths_file}"
             f.write(f"{cmd}\n")
     bash_execute_file(get_fastq_paths_file)
     return fastq_paths_file
@@ -61,8 +61,8 @@ def move_fastqs_to_sample_dir(directories, buckets, sample_tracking):
     fastq_paths = fastqs_paths_file.readlines()
     fastqs_paths_file.close()
     
-    move_fastqs_file = "%s/move_fastqs_%s.sh" % (directories['bcl_convert'], datetime.now().isoformat())
-    with open(move_fastqs_file, "w") as f: 
+    move_fastqs_file = f"{directories['bcl_convert']}/move_fastqs_{datetime.now().isoformat()}.sh"
+    with open(move_fastqs_file, "w") as f:
         for fp in fastq_paths:
             fp = fp.strip()
             p = Path(fp)
@@ -70,14 +70,14 @@ def move_fastqs_to_sample_dir(directories, buckets, sample_tracking):
             base_path = base_path.replace("gs:/", "gs://") if "gs://" not in base_path else base_path
             fastq_name = p.name
             fastq_name_with_lane = add_lane_to_fastq(fastq_name)
-            sampleID = fastq_name.split("_")[0]
-            
+            sample_id = fastq_name.split("_")[0]
+
             #update fastq sample ids to match ids expected by cellranger arc
-            if sample_tracking[sample_tracking['sampleid'] == sampleID]['method'].to_list()[0] == MULTIOME:
+            if sample_tracking[sample_tracking['sampleid'] == sample_id]['method'].to_list()[0] == MULTIOME:
                 submethod = p.parent.parent.parent.parent.name
-                fastq_name_with_lane = f"{sampleID}_{submethod}_{'_'.join(fastq_name_with_lane.split('_')[1:])}"
-                
-            f.write(f"gsutil mv {fp} {base_path}/{sampleID}/{fastq_name_with_lane}\n")
+                fastq_name_with_lane = f"{sample_id}_{submethod}_{'_'.join(fastq_name_with_lane.split('_')[1:])}"
+
+            f.write(f"gsutil mv {fp} {base_path}/{sample_id}/{fastq_name_with_lane}\n")
 
     logging.info("Moving FASTQs to sample directory. ")
     bash_execute_file(move_fastqs_file)
@@ -406,7 +406,7 @@ def upload_cellranger_arc_samplesheet(buckets, directories, sample_tracking, cel
 
     with open(samplesheet_arc_file, "w") as f:
         f.write("Sample,Reference,Flowcell,Lane,Index,DataType,Link\n")
-        for idx, sample in sample_tracking.iterrows():
+        for _, sample in sample_tracking.iterrows():
             sample_id = f"{sample['Sample']}_{sample['sub_method']}"
             f.write(f"{sample_id},{sample['reference']},{sample['fastq_dir']},{sample['Lane']},{sample['Index']},{sample['sub_method']},{sample['Sample']}\n")
 

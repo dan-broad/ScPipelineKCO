@@ -1,13 +1,12 @@
 import datetime
 import logging
-
-from utils import *
-import pandas as pd
 import concurrent.futures
-import steps
 import threading
 import os
-from consts import *
+import pandas as pd
+import steps
+from consts import MULTIOME, RNA, ATAC
+from utils import *
 
 """
 Config Section - Modify this section only
@@ -27,17 +26,17 @@ cellranger_method = os.getenv("CELLRANGER_METHOD", default="broadinstitute:cumul
 cellranger_version = os.getenv("CELLRANGER_VERSION", default="7.0.1")
 cellranger_atac_version = os.getenv("CELLRANGER_ATAC_VERSION", default="2.1.0")
 cellranger_arc_version = os.getenv("CELLRANGER_ARC_VERSION", default="2.0.1")
-# BCL Convert configs 
+# BCL Convert configs
 bcl_convert_method = os.getenv("BCL_CONVERT_METHOD", default="kco/bcl_convert/11")
 bcl_convert_workspace = os.getenv("BCL_CONVERT_WORKSPACE", default="genomics-xavier-fc/genomics-xavier")
 bcl_convert_version = os.getenv("BCL_CONVERT_VERSION", default="4.2.7")
-bcl_convert_disk_space = int(os.getenv("BCL_CONVERT_DISK_SPACE", default=1500))
-bcl_convert_memory = int(os.getenv("BCL_CONVERT_MEMORY", default=120))
-bcl_convert_cpu = int(os.getenv("BCL_CONVERT_NUM_CPU", default=32))
+bcl_convert_disk_space = int(os.getenv("BCL_CONVERT_DISK_SPACE", default="1500"))
+bcl_convert_memory = int(os.getenv("BCL_CONVERT_MEMORY", default="120"))
+bcl_convert_cpu = int(os.getenv("BCL_CONVERT_NUM_CPU", default="32"))
 bcl_convert_strict_mode = eval(os.getenv("BCL_CONVERT_STRICT_MODE", default="False"))
 bcl_convert_file_format_version = os.getenv("BCL_CONVERT_FILE_FORMAT_VERSION", default="2")
 bcl_convert_lane_splitting = eval(os.getenv("BCL_CONVERT_LANE_SPLITTING", default="False"))
-bcl_convert_num_lanes = int(os.getenv("NUM_LANES_FLOWCELL", default=0))
+bcl_convert_num_lanes = int(os.getenv("NUM_LANES_FLOWCELL", default="0"))
 bcl_convert_docker_registry = os.getenv("BCL_CONVERT_DOCKER_REGISTRY", default="gcr.io/microbiome-xavier")
 
 """
@@ -245,18 +244,18 @@ def process_multiome():
         futures = []
         for m in sub_methods:
             futures.append(executor.submit(process_bcl_convert, sample_tracking[sample_tracking.sub_method == m]))
-            
+
         for future in concurrent.futures.as_completed(futures):
-            try: 
+            try:
                 logging.info(future.result())
-            except Exception as e: 
+            except Exception as e:
                   logging.error(e)
 
     # add path to fastq for each sample before running cellranger 
     get_run_id = lambda sample: os.path.basename(sample['seq_dir'])
     get_fastq_path = lambda r: f"{buckets['fastqs']}/{r['sub_method']}/{get_run_id(r)}_fastqs/sample_fastqs/{r['sampleid']}"
     sample_tracking['fastq_dir'] = sample_tracking.apply(get_fastq_path, axis=1)
-        
+
     steps.upload_cellranger_arc_samplesheet(buckets, directories, sample_tracking, cellranger_arc_version,
                                             mkfastq_disk_space, mkfastq_memory, steps_to_run)
     steps.run_cellranger_arc(buckets, directories, cellranger_method, alto_workspace)
@@ -283,11 +282,10 @@ if __name__ == "__main__":
             seq_dirs = set(master_tracking[master_tracking.run_pipeline & ((master_tracking.method == RNA) | (master_tracking.method == ATAC))]['seq_dir'])
             results = executor.map(process_rna_flowcell, seq_dirs)
             for res in results:
-                try: 
+                try:
                     logging.info(res.result())
                 except Exception as e: 
                     logging.error(e)
     if MULTIOME in method:
         logging.info('Processing Multiome Samples.')
         process_multiome()
-
