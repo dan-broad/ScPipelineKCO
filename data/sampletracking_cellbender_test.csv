@@ -1,0 +1,2 @@
+date,run_pipeline,Channel Name,sampleid,method,sub_method,condition,replicate,tissue,Lane,Index,project,project_orig,reference,chemistry,flowcell,seq_dir,min_umis,min_genes,percent_mito,cellbender_expected_cells,cellbender_total_droplets_included,focus,append,calc_signature_scores,introns
+2024_04_08,TRUE,channel1,pool_433_448_1,rna,rna,nuclei,channel1,pbmc,1-4,SI-TT-A3,FINNGEN,FINNGEN,GRCh38-2020-A,ARC-v1,22JH3JLT3,gs://fc-secure-d4adbbf9-8265-4a5c-b14f-23a5f1b5c4f9/finngen_gex/counts_FINNGEN/pool_433_448_1/,400,200,20,,,,,,TRUE
