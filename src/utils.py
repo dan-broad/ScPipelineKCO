@@ -36,8 +36,8 @@ def build_buckets(gcp_basedir, project):
         'counts': gcp_basedir + "/counts_" + project,
         'results': gcp_basedir + "/cumulus_" + project,
         'cellranger_arc': gcp_basedir + "/cellranger_arc_" + project,
-        'cellbender': gcp_basedir + "/cellbenderv2_" + project,
-        'cellbender_results': gcp_basedir + "/cellbenderv2_cumulus_" + project
+        'cellbender': gcp_basedir + "/cellbenderv2.5.0_" + project,
+        'cellbender_results': gcp_basedir + "/cellbenderv2.5.0_cumulus_" + project
     }
 
 
