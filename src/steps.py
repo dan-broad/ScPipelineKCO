@@ -205,9 +205,7 @@ def upload_cell_bender_input(buckets, directories, sample_dicts, sample_tracking
             input_cellbender_file = "%s/%s/input_cellbender.json" % (cellbender_dir, sampleid)
             with open('templates/cellbender_input_template.json') as f:
                 template = f.read()
-            template = template.replace('"{total_droplets_included}"', str(cellbenderdict[sampleid][1])) \
-                .replace('"{expected_cells}"', str(cellbenderdict[sampleid][0])) \
-                .replace('{sample_name}', str(sampleid)) \
+            template = template.replace('{sample_name}', str(sampleid)) \
                 .replace('{input_dir}', "%s/%s/%s" % (countsbucket, sampleid, count_matrix_name)) \
                 .replace('{output_dir}', "%s/%s" % (cellbenderbucket, sampleid))
 

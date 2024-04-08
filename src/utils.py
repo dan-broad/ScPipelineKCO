@@ -62,7 +62,6 @@ def build_sample_dicts(sample_tracking, sampleids):
         sample_dict[row['sampleid']].append(row['Sample'])
         mkfastq_dict[row['Sample']] = [row['Lane'], row['Index'], row['reference'], row['chemistry'], row['method']]
         cumulus_dict[row['sampleid']] = [row['min_umis'], row['min_genes'], row['percent_mito']]
-        cellbender_dict[row['sampleid']] = [row['cellbender_expected_cells'], row['cellbender_total_droplets_included']]
         cellranger_dict[row['sampleid']] = [row['introns']]
 
     return {

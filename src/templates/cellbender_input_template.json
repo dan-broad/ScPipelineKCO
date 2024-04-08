@@ -1,8 +1,6 @@
 {
-  "cellbender_remove_background.run_cellbender_remove_background_gpu.total_droplets_included": "{total_droplets_included}",
   "cellbender_remove_background.run_cellbender_remove_background_gpu.z_dim": 100,
   "cellbender_remove_background.run_cellbender_remove_background_gpu.epochs": 150,
-  "cellbender_remove_background.run_cellbender_remove_background_gpu.expected_cells": "{expected_cells}",
   "cellbender_remove_background.run_cellbender_remove_background_gpu.sample_name": "{sample_name}",
   "cellbender_remove_background.run_cellbender_remove_background_gpu.hardware_preemptible_tries": 0,
   "cellbender_remove_background.run_cellbender_remove_background_gpu.input_10x_h5_file_or_mtx_directory": "{input_dir}",
