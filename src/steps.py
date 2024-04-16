@@ -287,15 +287,33 @@ def upload_cell_bender_input(buckets, directories, sample_dicts, sample_tracking
                 os.mkdir("%s/%s" % (cellbender_dir, sampleid))
             input_cellbender_file = "%s/%s/input_cellbender.json" % (cellbender_dir, sampleid)
             template = get_cellbender_inputs_template(version)
-            template = template.replace('"{total_droplets_included}"', str(cellbenderdict[sampleid][1])) \
-                .replace('"{expected_cells}"', str(cellbenderdict[sampleid][0])) \
-                .replace('{sample_name}', str(sampleid)) \
+
+            template = template.replace('{sample_name}', str(sampleid)) \
                 .replace('{input_dir}', "%s/%s/%s" % (countsbucket, sampleid, count_matrix_name)) \
                 .replace('{output_dir}', "%s/%s" % (cellbenderbucket, sampleid)) \
-                .replace('{cellbender_version}', version)
+                .replace('{cellbender_version}', version) \
+                .replace('{learning_rate}', cellbenderdict[sampleid][2])
 
+            optional_params = {'"{total_droplets_included}"': str(cellbenderdict[sampleid][1]),
+                               '"{expected_cells}"': str(cellbenderdict[sampleid][0]),
+                               '"{force_cell_umi_prior}"': str(cellbenderdict[sampleid][3]),
+                               '"{force_empty_umi_prior}"': str(cellbenderdict[sampleid][4])
+                            }
+            
+            for replace_from, replace_to in optional_params.items():
+                if pd.notna(replace_to) and replace_to.lower() not in ['nan', '']:
+                    template = template.replace(replace_from, replace_to)
+                else:
+                    template = template.replace(replace_from, 'null')
+
+            template = json.loads(template)
+            params = {}
+            for k, v in template.items():
+               if not v is None:
+                   params[k] = v
+            
             with open(input_cellbender_file, "w") as f:
-                f.write(template)
+                json.dump(params, f)
 
     logging.info("STEP 7 | Upload cellbender input file to Google Cloud Storage Bucket. ")
     uploadcellbender_file = "%s/uploadcellbender_%s.sh" % (cellbender_dir, sample_tracking['flowcell'].iloc[0])

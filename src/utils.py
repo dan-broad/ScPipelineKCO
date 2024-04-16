@@ -60,11 +60,19 @@ def build_sample_dicts(sample_tracking, sampleids):
     cumulus_dict = dict()
     cellbender_dict = dict()
     cellranger_dict = dict()
+    insert_cellbender_defaults(sample_tracking)
+    
     for _, row in sample_tracking.iterrows():
+        learning_rate = "%f" % row['cellbender_learning_rate'] # gets rid of scientific notation for floats, temp fix
+        
         sample_dict[row['sampleid']].append(row['Sample'])
         mkfastq_dict[row['Sample']] = [row['Lane'], row['Index'], row['reference'], row['chemistry'], row['method']]
         cumulus_dict[row['sampleid']] = [row['min_umis'], row['min_genes'], row['percent_mito']]
-        cellbender_dict[row['sampleid']] = [row['cellbender_expected_cells'], row['cellbender_total_droplets_included']]
+        cellbender_dict[row['sampleid']] = [row['cellbender_expected_cells'],
+                                            row['cellbender_total_droplets_included'],
+                                            learning_rate,
+                                            row['cellbender_force_cell_umi_prior'],
+                                            row['cellbender_force_empty_umi_prior']]
         cellranger_dict[row['sampleid']] = [row['introns']]
 
     return {
@@ -295,3 +303,10 @@ def get_cellbender_inputs_template(version):
         with open(f'{parent_dir}/templates/cellbender_v2_input_template.json') as f:
             template = f.read()
     return template
+
+def insert_cellbender_defaults(sample_sheet):
+    cellbender_defaults = {
+        "cellbender_learning_rate": 0.00005,
+    }
+
+    sample_sheet.fillna(value=cellbender_defaults, inplace=True)

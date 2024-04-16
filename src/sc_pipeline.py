@@ -21,7 +21,7 @@ steps_to_run = os.getenv("STEPS", default="BCL_CONVERT,COUNT,CUMULUS").split(','
 mkfastq_disk_space = int(os.getenv("MKFASTQ_DISKSPACE", default=1500))
 mkfastq_memory = os.getenv("MKFASTQ_MEMORY", default="120G")
 cellbender_method = os.getenv("CELLBENDER_METHOD", default="cellbender/remove-background/13")
-cellbender_version = os.getenv("CELLBENDER_METHOD", default="0.3.1")
+cellbender_version = os.getenv("CELLBENDER_METHOD", default="0.3.0")
 cumulus_method = os.getenv("CUMULUS_METHOD", default="broadinstitute:cumulus:cumulus:2.1.1")
 cellranger_method = os.getenv("CELLRANGER_METHOD", default="broadinstitute:cumulus:Cellranger:2.1.1")
 cellranger_version = os.getenv("CELLRANGER_VERSION", default="7.0.1")
@@ -67,7 +67,8 @@ sample_sheet_columns = [
     'condition', 'replicate', 'tissue', 'Lane', 'Index', 'instrument_platform', 'instrument_type',
     'create_fastq_for_index_reads', 'trim_umi', 'override_cycles', 'project', 'reference',
     'introns', 'chemistry', 'flowcell', 'seq_dir', 'min_umis', 'min_genes', 'percent_mito', 
-    'cellbender_expected_cells', 'cellbender_total_droplets_included'
+    'cellbender_expected_cells', 'cellbender_total_droplets_included', 'cellbender_learning_rate',
+    'cellbender_force_cell_umi_prior', 'cellbender_force_empty_umi_prior'
 ]
 
 for col in sample_sheet_columns:
@@ -119,7 +120,7 @@ def process_rna_flowcell(seq_dir):
     """
     sample_tracking = master_tracking[master_tracking.run_pipeline &
                                       (master_tracking.seq_dir == seq_dir)]
-
+    
     threading.current_thread().name = 'Thread:' + sample_tracking['flowcell'].iloc[0]
     logging.info("Started processing samples in {}".format(seq_dir))
 
