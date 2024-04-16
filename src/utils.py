@@ -9,20 +9,20 @@ import json
 from string import Template
 import firecloud.api as fapi
 import pandas as pd
-from consts import TERRA_POLL_SPACER, TERRA_TIMEOUT
+from pathlib import Path
+from consts import TERRA_POLL_SPACER, TERRA_TIMEOUT, RNA, ATAC, GEX_I7_INDEX_KEY
 
 alto_lock = threading.Lock()
 
 
 def build_directories(basedir):
     directories = {
-        'scripts': basedir + "/scripts",
         'fastqs': basedir + "/fastqs",
         'counts': basedir + "/counts",
         'results': basedir + "/cumulus",
         'cellranger_arc': basedir + "/cellranger_arc",
-        'cellbender': basedir + "/cellbenderV2",
-        'cellbender_results': basedir + "/cellbenderV2_cumulus",
+        'cellbender': basedir + "/cellbender",
+        'cellbender_results': basedir + "/cellbender_cumulus",
         'bcl_convert': basedir + "/bcl_convert" 
     }
     for directory in directories.values():
@@ -37,8 +37,8 @@ def build_buckets(gcp_basedir, project):
         'counts': gcp_basedir + "/counts_" + project,
         'results': gcp_basedir + "/cumulus_" + project,
         'cellranger_arc': gcp_basedir + "/cellranger_arc_" + project,
-        'cellbender': gcp_basedir + "/cellbenderv2_" + project,
-        'cellbender_results': gcp_basedir + "/cellbenderv2_cumulus_" + project,
+        'cellbender': gcp_basedir + "/cellbender_" + project,
+        'cellbender_results': gcp_basedir + "/cellbender_cumulus_" + project,
         'bcl_convert': gcp_basedir + "/bcl_convert_" + project
     }
 
@@ -157,14 +157,16 @@ def get_rna_sample_sheet(env_vars, sample_tracking, num_lanes):
         template = Template(f.read())
         sample_sheet = template.safe_substitute(env_vars)
 
-    columns = ["sampleid", "Index", "Index2"]
+    columns = ["sampleid", "Index"]
     columns = columns + ["Lane"] if not env_vars.get("no_lane_splitting") else columns
     samples_with_indices = sample_tracking[columns]
 
     if not env_vars.get("no_lane_splitting"):
         samples_with_indices = apply_lane_splits(samples_with_indices, num_lanes)
+        samples_with_indices = samples_with_indices[['Lane', 'sampleid', 'Index']] #reorder columns
 
-    samples_with_indices = samples_with_indices.rename(columns={"sampleid": "Sample_ID", "Index": "index", "Index2": "index2"})
+    samples_with_indices.rename(columns={"sampleid": "Sample_ID", "Index": "index"}, inplace=True)
+    replace_index(samples_with_indices, RNA, env_vars["gex_i5_index_key"])
     return sample_sheet + samples_with_indices.to_csv(index=False,)
 
 def get_atac_sample_sheet(env_vars, sample_tracking, num_lanes):
@@ -173,48 +175,55 @@ def get_atac_sample_sheet(env_vars, sample_tracking, num_lanes):
         template = Template(f.read())
         sample_sheet = template.safe_substitute(env_vars)
 
-    columns = ["Lane", "sampleid", "Index", "Index2", "Index3", "Index4"]
+    columns = ["Lane", "sampleid", "Index"]
     samples_with_indices = sample_tracking.get(columns)
-    flattend_sample_indices = flatten_sample_indices(samples_with_indices)
+    samples_with_indices.rename(columns={"sampleid": "Sample_ID", "Index": "index"}, inplace=True)
+    replace_index(samples_with_indices, ATAC)
+    flattend_sample_indices = samples_with_indices.explode("index")
 
-    if env_vars.get("no_lane_splitting"): 
+    if env_vars.get("no_lane_splitting"):
         flattend_sample_indices.drop(columns='Lane', inplace=True)
     else:
         flattend_sample_indices = apply_lane_splits(flattend_sample_indices, num_lanes)
+        flattend_sample_indices = flattend_sample_indices.get(['Lane', 'Sample_ID', 'index', 'index2']) #reorder columns
 
     return sample_sheet + flattend_sample_indices.to_csv(index=False)
 
-def flatten_sample_indices(sample_tracking):
-    flattened = pd.DataFrame(columns=["Lane", "Sample_ID", "index"])
-    for _, r in sample_tracking.iterrows():
-        sample_id = r['sampleid']
-        sample_df = pd.DataFrame([
-            [r['Lane'], sample_id, r['Index']],
-            [r['Lane'], sample_id, r['Index2']],
-            [r['Lane'], sample_id, r['Index3']],
-            [r['Lane'], sample_id, r['Index4']],
-        ], columns=["Lane", "Sample_ID", "index"])
-        flattened = pd.concat([flattened, sample_df], ignore_index=True)
-    return flattened
+def get_library_indices():
+    file_dir = os.path.dirname(os.path.realpath(__file__))
+    with open(f"{file_dir}/index_kits/Dual_Index_Kit_TT_Set_A.json") as gex_indices, \
+        open(f"{file_dir}/index_kits/Single_Index_Kit_N_Set_A_Reformatted.json") as atac_indices:
+        return {
+            RNA: json.load(gex_indices),
+            ATAC: json.load(atac_indices)
+        }
+
+def replace_index(samples, method, i5_index_key=None):
+    indices = get_library_indices()[method]
+    if method == RNA:
+        samples.insert(len(samples.columns), 'index2', pd.NA)
+
+    for i, r in samples.iterrows():
+        index_oligonucleotide = indices[r['index']]
+        if method == RNA:
+            samples.loc[i, 'index'] = index_oligonucleotide[GEX_I7_INDEX_KEY]
+            samples.loc[i, 'index2'] = index_oligonucleotide[i5_index_key]
+        elif method == ATAC:
+            samples.loc[i, 'index'] = index_oligonucleotide
 
 def apply_lane_splits(sample_tracking, num_lanes):
-    lane_split = []
-
     for _, sample in sample_tracking.iterrows():
         lane_val = str(sample['Lane'])
-        drop_lane = sample.drop(labels=['Lane'])
+
         if len(lane_val) == 1 and lane_val.isdecimal(): # no need to split
-            lane_split.append([sample['Lane']] + drop_lane.to_list())
+            sample['Lane'] = sample['Lane'].to_list()
         elif '-' in lane_val:
             start, end = lane_val.split('-')
-            r = range(int(start), int(end)+1)
-            for i in r:
-                lane_split.append([i] + drop_lane.to_list())
+            sample['Lane'] = list(range(int(start), int(end)+1))
         elif lane_val == '*':
-            for i in range(num_lanes):
-                lane_split.append([i+1] + drop_lane.to_list())
+            sample['Lane'] = list(range(1, num_lanes+1))
 
-    return pd.DataFrame(lane_split, columns=['Lane'] + sample_tracking.columns.drop('Lane').to_list())
+    return sample_tracking.explode('Lane')
 
 def create_bcl_convert_params(file_path, env_vars, input_dir, fastq_output_dir, sample_sheet_path):
     with open(file_path, "w") as f: 
@@ -239,16 +248,20 @@ def create_bcl_convert_params(file_path, env_vars, input_dir, fastq_output_dir, 
 
 def get_bcl_convert_vars(env_vars, sample_sheet, flow_cell):
     bcl_convert_vars = env_vars.copy()
+    override_cycles = sample_sheet['override_cycles'][0]
+    read_cycles = re.findall("Y\d+", override_cycles)
+    index_cycles = re.findall("[I|U]\d+", override_cycles)
+
     bcl_convert_vars['run_name'] = flow_cell
     bcl_convert_vars['instrument_platform'] = sample_sheet['instrument_platform'][0]
     bcl_convert_vars['instrument_type'] = sample_sheet['instrument_type'][0]
-    bcl_convert_vars['read1_cycles'] = int(sample_sheet['read1_cycles'][0])
-    bcl_convert_vars['read2_cycles'] = int(sample_sheet['read2_cycles'][0])
-    bcl_convert_vars['index1_cycles'] = int(sample_sheet['index1_cycles'][0])
-    bcl_convert_vars['index2_cycles'] = int(sample_sheet['index2_cycles'][0])
+    bcl_convert_vars['read1_cycles'] = int(read_cycles[0][1:])
+    bcl_convert_vars['read2_cycles'] = int(read_cycles[1][1:])
+    bcl_convert_vars['index1_cycles'] = int(index_cycles[0][1:])
+    bcl_convert_vars['index2_cycles'] = int(index_cycles[1][1:])
     bcl_convert_vars['create_fastq_for_index_reads'] = get_boolean_val(sample_sheet['create_fastq_for_index_reads'][0])
     bcl_convert_vars['trim_umi'] = get_boolean_val(sample_sheet['trim_umi'][0])
-    bcl_convert_vars['override_cycles'] = sample_sheet['override_cycles'][0]
+    bcl_convert_vars['override_cycles'] = override_cycles
     return bcl_convert_vars
 
 def add_lane_to_fastq(file_name):
@@ -271,3 +284,14 @@ def get_boolean_val(val):
             return ''
         case _:
             raise ValueError
+
+def get_cellbender_inputs_template(version):
+    parent_dir = Path(__file__).parent.resolve()
+
+    if version.startswith("0.3"):
+        with open(f'{parent_dir}/templates/cellbender_v3_input_template.json') as f:
+            template = f.read()
+    else:
+        with open(f'{parent_dir}/templates/cellbender_v2_input_template.json') as f:
+            template = f.read()
+    return template

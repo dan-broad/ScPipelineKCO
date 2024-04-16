@@ -211,7 +211,8 @@ def upload_cumulus_samplesheet(buckets, directories, sample_dicts, sample_tracki
     cumulusdict = sample_dicts['cumulus']
     results_dir = directories['results']
     resultsbucket = buckets['results']
-
+    parent_dir = Path(__file__).parent.resolve()
+    
     flowcell = sample_tracking['flowcell'].iloc[0]
 
     for sampleid in sample_dict.keys():
@@ -224,11 +225,12 @@ def upload_cumulus_samplesheet(buckets, directories, sample_dicts, sample_tracki
             for sample in sample_dict[sampleid]:
                 f.write("%s,%s/%s/%s\n" % (sample, buckets['counts'], sample, count_matrix_name))
 
+    
     for sampleid in sample_dict.keys():
         input_cumulus_file = "%s/%s/input_cumulus.json" % (results_dir, sampleid)
         samplesheet_cumulus = "%s/%s/samplesheet_cumulus.csv" % (resultsbucket, sampleid)
 
-        with open('templates/cumulus_input_template.json') as f:
+        with open(f'{parent_dir}/templates/cumulus_input_template.json') as f:
             template = f.read()
         template = template.replace('{input_file}', samplesheet_cumulus) \
             .replace('{output_directory}', "%s/" % resultsbucket) \
@@ -269,7 +271,7 @@ def run_cumulus(directories, sample_dicts, sample_tracking, alto_workspace, alto
     execute_alto_command(run_alto_file)
 
 
-def upload_cell_bender_input(buckets, directories, sample_dicts, sample_tracking, count_matrix_name):
+def upload_cell_bender_input(buckets, directories, sample_dicts, sample_tracking, count_matrix_name, version):
     sample_dict = sample_dicts['sample']
     cellbenderdict = sample_dicts['cellbender']
     cellbender_dir = directories['cellbender']
@@ -284,13 +286,13 @@ def upload_cell_bender_input(buckets, directories, sample_dicts, sample_tracking
             if not os.path.isdir("%s/%s" % (cellbender_dir, sampleid)):
                 os.mkdir("%s/%s" % (cellbender_dir, sampleid))
             input_cellbender_file = "%s/%s/input_cellbender.json" % (cellbender_dir, sampleid)
-            with open('templates/cellbender_input_template.json') as f:
-                template = f.read()
+            template = get_cellbender_inputs_template(version)
             template = template.replace('"{total_droplets_included}"', str(cellbenderdict[sampleid][1])) \
                 .replace('"{expected_cells}"', str(cellbenderdict[sampleid][0])) \
                 .replace('{sample_name}', str(sampleid)) \
                 .replace('{input_dir}', "%s/%s/%s" % (countsbucket, sampleid, count_matrix_name)) \
-                .replace('{output_dir}', "%s/%s" % (cellbenderbucket, sampleid))
+                .replace('{output_dir}', "%s/%s" % (cellbenderbucket, sampleid)) \
+                .replace('{cellbender_version}', version)
 
             with open(input_cellbender_file, "w") as f:
                 f.write(template)
@@ -330,6 +332,7 @@ def upload_post_cellbender_cumulus_input(buckets, directories, sample_dicts, sam
     cellbenderbucket = buckets['cellbender']
     cellbender_resultsbucket = buckets['cellbender_results']
     cellbender_results_dir = directories['cellbender_results']
+    parent_dir = Path(__file__).parent.resolve()
 
     for sampleid in sample_dict.keys():
         if not os.path.isdir("%s/%s" % (cellbender_results_dir, sampleid)):
@@ -347,7 +350,7 @@ def upload_post_cellbender_cumulus_input(buckets, directories, sample_dicts, sam
         input_cellbender_cumulus_file = "%s/%s/input_cumulus.json" % (cellbender_results_dir, sampleid)
         samplesheet_cellbender = "%s/%s/samplesheet_cellbender_cumulus.csv" % (cellbender_resultsbucket, sampleid)
 
-        with open('templates/cumulus_input_template.json') as f:
+        with open(f'{parent_dir}/templates/cumulus_input_template.json') as f:
             template = f.read()
         template = template.replace('{input_file}', samplesheet_cellbender) \
             .replace('{output_directory}', "%s/" % cellbender_resultsbucket) \
@@ -394,6 +397,7 @@ def upload_cellranger_arc_samplesheet(buckets, directories, sample_tracking, cel
                                       mkfastq_disk_space, mkfastq_memory, steps_to_run):
     arc_dir = directories['cellranger_arc']
     arc_bucket = buckets['cellranger_arc']
+    parent_dir = Path(__file__).parent.resolve()
 
     samplesheet_arc_file = f"{arc_dir}/arc/samplesheet_arc.csv"
     samplesheet_arc_gcp_file = f"{arc_bucket}/arc/samplesheet_arc.csv"
@@ -418,7 +422,7 @@ def upload_cellranger_arc_samplesheet(buckets, directories, sample_tracking, cel
     run_mkfastq = "MKFASTQ" in steps_to_run
     run_count = "COUNT" in steps_to_run
 
-    parent_dir = Path(__file__).parent.resolve()
+    
     with open(f'{parent_dir}/templates/cellranger_arc_input_template.json') as f:
         template = f.read().replace('{input_csv}', samplesheet_arc_gcp_file) \
             .replace('{output_dir}', f"{arc_bucket}/output/") \

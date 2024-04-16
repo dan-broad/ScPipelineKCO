@@ -20,7 +20,8 @@ count_matrix_name = os.getenv("COUNT_MATRIX_NAME", default="filtered_feature_bc_
 steps_to_run = os.getenv("STEPS", default="BCL_CONVERT,COUNT,CUMULUS").split(',')
 mkfastq_disk_space = int(os.getenv("MKFASTQ_DISKSPACE", default=1500))
 mkfastq_memory = os.getenv("MKFASTQ_MEMORY", default="120G")
-cellbender_method = os.getenv("CELLBENDER_METHOD", default="broadinstitute:cumulus:CellBender:2.3.0")
+cellbender_method = os.getenv("CELLBENDER_METHOD", default="cellbender/remove-background/13")
+cellbender_version = os.getenv("CELLBENDER_METHOD", default="0.3.1")
 cumulus_method = os.getenv("CUMULUS_METHOD", default="broadinstitute:cumulus:cumulus:2.1.1")
 cellranger_method = os.getenv("CELLRANGER_METHOD", default="broadinstitute:cumulus:Cellranger:2.1.1")
 cellranger_version = os.getenv("CELLRANGER_VERSION", default="7.0.1")
@@ -28,7 +29,6 @@ cellranger_atac_version = os.getenv("CELLRANGER_ATAC_VERSION", default="2.1.0")
 cellranger_arc_version = os.getenv("CELLRANGER_ARC_VERSION", default="2.0.1")
 # BCL Convert configs
 bcl_convert_method = os.getenv("BCL_CONVERT_METHOD", default="kco/bcl_convert/11")
-bcl_convert_workspace = os.getenv("BCL_CONVERT_WORKSPACE", default="genomics-xavier-fc/genomics-xavier")
 bcl_convert_version = os.getenv("BCL_CONVERT_VERSION", default="4.2.7")
 bcl_convert_disk_space = int(os.getenv("BCL_CONVERT_DISK_SPACE", default="1500"))
 bcl_convert_memory = int(os.getenv("BCL_CONVERT_MEMORY", default="120"))
@@ -37,7 +37,8 @@ bcl_convert_strict_mode = eval(os.getenv("BCL_CONVERT_STRICT_MODE", default="Fal
 bcl_convert_file_format_version = os.getenv("BCL_CONVERT_FILE_FORMAT_VERSION", default="2")
 bcl_convert_lane_splitting = eval(os.getenv("BCL_CONVERT_LANE_SPLITTING", default="False"))
 bcl_convert_num_lanes = int(os.getenv("NUM_LANES_FLOWCELL", default="0"))
-bcl_convert_docker_registry = os.getenv("BCL_CONVERT_DOCKER_REGISTRY", default="gcr.io/microbiome-xavier")
+bcl_convert_gex_i5_index_key = os.getenv("GEX_I5_INDEX_KEY", default='index2_workflow_a(i5)')
+bcl_convert_docker_registry = os.getenv("BCL_CONVERT_DOCKER_REGISTRY", default="us-docker.pkg.dev/microbiome-xavier/broad-microbiome-xavier")
 
 """
 Set global variables
@@ -62,11 +63,11 @@ alto_dirs = build_alto_folders(buckets)
 log_file = os.getenv("PIPELINE_LOGS", default='{}/{}.log'.format(basedir, project_name))
 
 sample_sheet_columns = [
-    'date', 'run_pipeline', 'Channel Name', 'Sample', 'sampleid', 'method', 'sub_method', 'condition',
-    'replicate', 'tissue', 'Lane', 'Index', 'Index2', 'Index3', 'Index4', 'instrument_platform', 'instrument_type', 
-    'read1_cycles', 'read2_cycles', 'index1_cycles', 'index2_cycles', 'create_fastq_for_index_reads', 'trim_umi', 
-    'override_cycles', 'project', 'reference', 'introns', 'chemistry', 'flowcell', 'seq_dir', 'min_umis', 
-    'min_genes', 'percent_mito', 'cellbender_expected_cells','cellbender_total_droplets_included'
+    'date', 'run_pipeline', 'Channel Name', 'Sample', 'sampleid', 'method', 'sub_method',
+    'condition', 'replicate', 'tissue', 'Lane', 'Index', 'instrument_platform', 'instrument_type',
+    'create_fastq_for_index_reads', 'trim_umi', 'override_cycles', 'project', 'reference',
+    'introns', 'chemistry', 'flowcell', 'seq_dir', 'min_umis', 'min_genes', 'percent_mito', 
+    'cellbender_expected_cells', 'cellbender_total_droplets_included'
 ]
 
 for col in sample_sheet_columns:
@@ -89,6 +90,7 @@ def process_bcl_convert(sample_tracking):
            "file_format_version": bcl_convert_file_format_version,
            "no_lane_splitting": not bcl_convert_lane_splitting,
            "num_lanes": bcl_convert_num_lanes,
+           "gex_i5_index_key": bcl_convert_gex_i5_index_key,
            "docker_registry": bcl_convert_docker_registry
        }
 
@@ -104,7 +106,7 @@ def process_bcl_convert(sample_tracking):
         buckets, 
         paths, 
         bcl_convert_method, 
-        bcl_convert_workspace
+        alto_workspace
     )
     
     if env_vars["no_lane_splitting"]:
@@ -128,6 +130,7 @@ def process_rna_flowcell(seq_dir):
     if "BCL_CONVERT" in steps_to_run:
         process_bcl_convert(sample_tracking)
 
+    # DEPRECATED
     if "MKFASTQ" in steps_to_run:
 
         steps.upload_cellranger_mkfastq_input(
@@ -194,7 +197,8 @@ def process_rna_flowcell(seq_dir):
             directories,
             sample_dicts,
             sample_tracking,
-            count_matrix_name
+            count_matrix_name,
+            cellbender_version
         )
 
         steps.run_cellbender(
