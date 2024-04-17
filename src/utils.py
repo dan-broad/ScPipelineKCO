@@ -294,7 +294,7 @@ def add_lane_to_fastq(file_name):
 #             raise ValueError
 
 def get_boolean_val(val):
-    val = str(val).lower():
+    val = str(val).lower()
     if val in ('1.0', '1'):
         return 1
     elif val in ('0.0', '0'):
