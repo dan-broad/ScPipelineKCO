@@ -278,35 +278,35 @@ def add_lane_to_fastq(file_name):
         return ''.join(split[:2]) + '_L001' + split[2]
     return file_name
 
-# def get_boolean_val(val):
-#     match str(val).lower():
-#         case '1.0' | '1':
-#             return 1
-#         case '0.0' | '0':
-#             return 0 
-#         case 'true':
-#             return 'true'
-#         case 'false':
-#             return 'false'
-#         case '' | 'nan':
-#             return ''
-#         case _:
-#             raise ValueError
-
 def get_boolean_val(val):
-    val = str(val).lower()
-    if val in ('1.0', '1'):
-        return 1
-    elif val in ('0.0', '0'):
-        return 0 
-    elif val == 'true':
-        return 'true'
-    elif val == 'false':
-        return 'false'
-    elif val in ('', 'nan'):
-        return ''
-    else:
-        raise ValueError
+    match str(val).lower():
+        case '1.0' | '1':
+            return 1
+        case '0.0' | '0':
+            return 0 
+        case 'true':
+            return 'true'
+        case 'false':
+            return 'false'
+        case '' | 'nan':
+            return ''
+        case _:
+            raise ValueError
+
+# def get_boolean_val(val):
+#     val = str(val).lower()
+#     if val in ('1.0', '1'):
+#         return 1
+#     elif val in ('0.0', '0'):
+#         return 0 
+#     elif val == 'true':
+#         return 'true'
+#     elif val == 'false':
+#         return 'false'
+#     elif val in ('', 'nan'):
+#         return ''
+#     else:
+#         raise ValueError
 
 def get_cellbender_inputs_template(version):
     parent_dir = Path(__file__).parent.resolve()
