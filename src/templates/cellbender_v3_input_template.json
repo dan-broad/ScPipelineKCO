@@ -1,0 +1,16 @@
+{
+  "cellbender_remove_background.run_cellbender_remove_background_gpu.z_dim": 100,
+  "cellbender_remove_background.run_cellbender_remove_background_gpu.learning_rate":  "{learning_rate}", 
+  "cellbender_remove_background.run_cellbender_remove_background_gpu.fpr": "0.01 0.05 0.1",
+  "cellbender_remove_background.run_cellbender_remove_background_gpu.docker_image": "us.gcr.io/broad-dsde-methods/cellbender:{cellbender_version}",
+  "cellbender_remove_background.run_cellbender_remove_background_gpu.expected_cells": "{expected_cells}",
+  "cellbender_remove_background.run_cellbender_remove_background_gpu.total_droplets_included": "{total_droplets_included}",
+  "cellbender_remove_background.run_cellbender_remove_background_gpu.sample_name": "{sample_name}",
+  "cellbender_remove_background.run_cellbender_remove_background_gpu.epochs": 150,
+  "cellbender_remove_background.run_cellbender_remove_background_gpu.hardware_preemptible_tries": 0,
+  "cellbender_remove_background.run_cellbender_remove_background_gpu.output_bucket_base_directory": "{output_dir}",
+  "cellbender_remove_background.run_cellbender_remove_background_gpu.input_file_unfiltered": "{input_dir}",
+  "cellbender_remove_background.run_cellbender_remove_background_gpu.force_cell_umi_prior": "{force_cell_umi_prior}",
+  "cellbender_remove_background.run_cellbender_remove_background_gpu.force_empty_umi_prior": "{force_empty_umi_prior}"
+}
+

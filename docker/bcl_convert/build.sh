@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
-docker build -t bcl_convert-3.10.5 .
-docker tag bcl_convert-3.10.5 gcr.io/microbiome-xavier/bcl_convert:3.10.5
-docker push gcr.io/microbiome-xavier/bcl_convert:3.10.5
+version=4.2.7
+
+docker build -t bcl_convert-$version .
+docker tag bcl_convert-$version us-docker.pkg.dev/microbiome-xavier/broad-microbiome-xavier/bcl_convert:$version
+docker push us-docker.pkg.dev/microbiome-xavier/broad-microbiome-xavier/bcl_convert:$version
