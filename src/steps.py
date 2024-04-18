@@ -309,9 +309,11 @@ def upload_cell_bender_input(buckets, directories, sample_dicts, sample_tracking
             template = json.loads(template)
             params = {}
             for k, v in template.items():
-               if not v is None:
-                   params[k] = v
-            
+                if not v is None:
+                    params[k] = v
+                if 'learning_rate' in k:
+                    params[k] = np.format_float_positional(v) # get float out of scientific notation
+
             with open(input_cellbender_file, "w") as f:
                 json.dump(params, f)
 

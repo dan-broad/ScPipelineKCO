@@ -64,14 +64,12 @@ def build_sample_dicts(sample_tracking, sampleids):
     insert_cellbender_defaults(sample_tracking)
     
     for _, row in sample_tracking.iterrows():
-        learning_rate = np.format_float_positional(row['cellbender_learning_rate'])
-        
         sample_dict[row['sampleid']].append(row['Sample'])
         mkfastq_dict[row['Sample']] = [row['Lane'], row['Index'], row['reference'], row['chemistry'], row['method']]
         cumulus_dict[row['sampleid']] = [row['min_umis'], row['min_genes'], row['percent_mito']]
         cellbender_dict[row['sampleid']] = [row['cellbender_expected_cells'],
                                             row['cellbender_total_droplets_included'],
-                                            learning_rate,
+                                            row['cellbender_learning_rate'],
                                             row['cellbender_force_cell_umi_prior'],
                                             row['cellbender_force_empty_umi_prior']]
         cellranger_dict[row['sampleid']] = [row['introns']]
