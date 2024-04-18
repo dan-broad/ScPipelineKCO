@@ -38,11 +38,7 @@ def run_bcl_convert(directories, buckets, sample_paths, bcl_convert_method, bcl_
         bucket_fastq_path = Path(buckets["fastqs"])
         method = directory_path.parent.name
         input_file = f"{directory_path}/inputs.json"
-        print(f"command: alto terra run -m {bcl_convert_method} -i {input_file} -w {bcl_convert_workspace} --bucket-folder {bucket_fastq_path.name}/{method} --no-cache\n")
         f.write(f"alto terra run -m {bcl_convert_method} -i {input_file} -w {bcl_convert_workspace} --bucket-folder {bucket_fastq_path.name}/{method} --no-cache\n")
-
-        with open(input_file, "r") as input_f:
-            print(f"input file: {input_f.read()}")
 
     logging.info("STEP 2 | Initiate Terra bcl_convert pipeline via alto. ")
     execute_alto_command(run_alto_file)

@@ -9,6 +9,7 @@ import json
 from string import Template
 import firecloud.api as fapi
 import pandas as pd
+import numpy as np
 from pathlib import Path
 from consts import TERRA_POLL_SPACER, TERRA_TIMEOUT, RNA, ATAC, GEX_I7_INDEX_KEY
 
@@ -63,7 +64,7 @@ def build_sample_dicts(sample_tracking, sampleids):
     insert_cellbender_defaults(sample_tracking)
     
     for _, row in sample_tracking.iterrows():
-        learning_rate = "%f" % row['cellbender_learning_rate'] # gets rid of scientific notation for floats, temp fix
+        learning_rate = np.format_float_positional(row['cellbender_learning_rate'])
         
         sample_dict[row['sampleid']].append(row['Sample'])
         mkfastq_dict[row['Sample']] = [row['Lane'], row['Index'], row['reference'], row['chemistry'], row['method']]
@@ -283,7 +284,7 @@ def get_boolean_val(val):
         case '1.0' | '1':
             return 1
         case '0.0' | '0':
-            return 0 
+            return 0
         case 'true':
             return 'true'
         case 'false':
@@ -292,21 +293,6 @@ def get_boolean_val(val):
             return ''
         case _:
             raise ValueError
-
-# def get_boolean_val(val):
-#     val = str(val).lower()
-#     if val in ('1.0', '1'):
-#         return 1
-#     elif val in ('0.0', '0'):
-#         return 0 
-#     elif val == 'true':
-#         return 'true'
-#     elif val == 'false':
-#         return 'false'
-#     elif val in ('', 'nan'):
-#         return ''
-#     else:
-#         raise ValueError
 
 def get_cellbender_inputs_template(version):
     parent_dir = Path(__file__).parent.resolve()
