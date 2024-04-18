@@ -23,6 +23,7 @@ mkfastq_diskspace="1500"
 cellranger_method="broadinstitute:cumulus:Cellranger:2.1.1"
 cumulus_method="broadinstitute:cumulus:cumulus:2.1.1"
 cellbender_method="cellbender/remove-background/13"
+cellbender_version="0.3.0"
 cellranger_version="7.0.1"
 cellranger_atac_version="2.1.0"
 cellranger_arc_version="2.0.1"
@@ -56,6 +57,7 @@ dsub --provider google-cls-v2 --project "microbiome-xavier" --regions us-east1 \
   --env CELLRANGER_METHOD="$cellranger_method" \
   --env CUMULUS_METHOD="$cumulus_method" \
   --env CELLBENDER_METHOD="$cellbender_method" \
+  --env CELLBENDER_VERSION="$cellbender_version" \
   --env CELLRANGER_VERSION="$cellranger_version" \
   --env CELLRANGER_ATAC_VERSION="$cellranger_atac_version" \
   --env CELLRANGER_ARC_VERSION="$cellranger_arc_version" \

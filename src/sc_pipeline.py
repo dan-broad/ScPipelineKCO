@@ -21,7 +21,7 @@ steps_to_run = os.getenv("STEPS", default="BCL_CONVERT,COUNT,CUMULUS").split(','
 mkfastq_disk_space = int(os.getenv("MKFASTQ_DISKSPACE", default=1500))
 mkfastq_memory = os.getenv("MKFASTQ_MEMORY", default="120G")
 cellbender_method = os.getenv("CELLBENDER_METHOD", default="cellbender/remove-background/13")
-cellbender_version = os.getenv("CELLBENDER_METHOD", default="0.3.0")
+cellbender_version = os.getenv("CELLBENDER_VERSION", default="0.3.0")
 cumulus_method = os.getenv("CUMULUS_METHOD", default="broadinstitute:cumulus:cumulus:2.1.1")
 cellranger_method = os.getenv("CELLRANGER_METHOD", default="broadinstitute:cumulus:Cellranger:2.1.1")
 cellranger_version = os.getenv("CELLRANGER_VERSION", default="7.0.1")
