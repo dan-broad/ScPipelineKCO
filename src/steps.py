@@ -292,7 +292,7 @@ def upload_cell_bender_input(buckets, directories, sample_dicts, sample_tracking
                 .replace('{input_dir}', "%s/%s/%s" % (countsbucket, sampleid, count_matrix_name)) \
                 .replace('{output_dir}', "%s/%s" % (cellbenderbucket, sampleid)) \
                 .replace('{cellbender_version}', version) \
-                .replace('{learning_rate}', cellbenderdict[sampleid][2])
+                .replace('{learning_rate}', np.format_float_positional(cellbenderdict[sampleid][2]))
 
             optional_params = {'"{total_droplets_included}"': str(cellbenderdict[sampleid][1]),
                                '"{expected_cells}"': str(cellbenderdict[sampleid][0]),
