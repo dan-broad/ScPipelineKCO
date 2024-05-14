@@ -243,18 +243,19 @@ def process_multiome():
 
     sample_tracking = sample_tracking[sample_sheet_columns]
 
-    # FASTQ generation can be parallelized 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_parallel_threads) as executor:
-        sub_methods = set(sample_tracking['sub_method'])
-        futures = []
-        for m in sub_methods:
-            futures.append(executor.submit(process_bcl_convert, sample_tracking[sample_tracking.sub_method == m]))
+    if "BCL_CONVERT" in steps_to_run:
+        # FASTQ generation can be parallelized 
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_parallel_threads) as executor:
+            sub_methods = set(sample_tracking['sub_method'])
+            futures = []
+            for m in sub_methods:
+                futures.append(executor.submit(process_bcl_convert, sample_tracking[sample_tracking.sub_method == m]))
 
-        for future in concurrent.futures.as_completed(futures):
-            try:
-                logging.info(future.result())
-            except Exception as e:
-                  logging.error(e)
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    logging.info(future.result())
+                except Exception as e:
+                    logging.error(e)
 
     # add path to fastq for each sample before running cellranger 
     get_run_id = lambda sample: os.path.basename(sample['seq_dir'])
