@@ -30,7 +30,7 @@ def upload_bcl_convert_input(sample_tracking, buckets, directories, env_vars):
     bash_execute_file(upload_bcl_convert_file)
     return input_paths
 
-def run_bcl_convert(directories, buckets, sample_paths, bcl_convert_method, bcl_convert_workspace):
+def run_bcl_convert(directories, buckets, sample_paths, bcl_convert_method, bcl_convert_workspace, terra_timeout):
     run_alto_file = f"{directories['bcl_convert']}/run_bcl_convert_workflow_{datetime.now().isoformat()}.sh"
 
     with open(run_alto_file, "w") as f:
@@ -41,7 +41,7 @@ def run_bcl_convert(directories, buckets, sample_paths, bcl_convert_method, bcl_
         f.write(f"alto terra run -m {bcl_convert_method} -i {input_file} -w {bcl_convert_workspace} --bucket-folder {bucket_fastq_path.name}/{method} --no-cache\n")
 
     logging.info("STEP 2 | Initiate Terra bcl_convert pipeline via alto. ")
-    execute_alto_command(run_alto_file)
+    execute_alto_command(run_alto_file, terra_timeout)
 
 def get_fastq_paths(directories, buckets, sample_tracking):
     get_fastq_paths_file = f"{directories['bcl_convert']}/get_fastqs_{datetime.now().isoformat()}.sh"
@@ -118,7 +118,7 @@ def upload_cellranger_mkfastq_input(buckets, directories, sample_tracking, cellr
     bash_execute_file(upload_cellranger_file)
 
 @DeprecationWarning
-def run_cellranger_mkfastq(directories, sample_tracking, alto_workspace, alto_method, alto_fastqs_folder):
+def run_cellranger_mkfastq(directories, sample_tracking, alto_workspace, alto_method, alto_fastqs_folder, terra_timeout):
     run_id = os.path.basename(sample_tracking['seq_dir'].iloc[0])
     alto_flowcell_bucket = "%s/%s" % (alto_fastqs_folder, run_id)
     fastq_flowcell_dir = directories['fastqs'] + "/%s" % run_id
@@ -133,7 +133,7 @@ def run_cellranger_mkfastq(directories, sample_tracking, alto_workspace, alto_me
     bash_alto.close()
 
     logging.info("STEP 2 | Initiate Terra cellranger_workflow pipeline via alto. ")
-    execute_alto_command(run_alto_file)
+    execute_alto_command(run_alto_file, terra_timeout)
 
 
 def upload_cellranger_count_input(buckets, directories, sample_dicts, sample_tracking, cellranger_version, cellranger_atac_version):
@@ -188,7 +188,7 @@ def upload_cellranger_count_input(buckets, directories, sample_dicts, sample_tra
     bash_execute_file(uploadcellranger_file)
 
 
-def run_cellranger_count(directories, sample_dicts, sample_tracking, alto_workspace, alto_method, alto_counts_folder):
+def run_cellranger_count(directories, sample_dicts, sample_tracking, alto_workspace, alto_method, alto_counts_folder, terra_timeout):
     sample_dict = sample_dicts['sample']
     counts_dir = directories['counts']
 
@@ -203,7 +203,7 @@ def run_cellranger_count(directories, sample_dicts, sample_tracking, alto_worksp
     bash_alto.close()
 
     logging.info("STEP 4 | Initiate Terra cellranger_workflow pipeline via alto. ")
-    execute_alto_command(run_alto_file)
+    execute_alto_command(run_alto_file, terra_timeout)
 
 
 def upload_cumulus_samplesheet(buckets, directories, sample_dicts, sample_tracking, count_matrix_name):
@@ -253,7 +253,7 @@ def upload_cumulus_samplesheet(buckets, directories, sample_dicts, sample_tracki
     bash_execute_file(upload_cumulus_file)
 
 
-def run_cumulus(directories, sample_dicts, sample_tracking, alto_workspace, alto_method, alto_results_folder):
+def run_cumulus(directories, sample_dicts, sample_tracking, alto_workspace, alto_method, alto_results_folder, terra_timeout):
     sample_dict = sample_dicts['sample']
     results_dir = directories['results']
 
@@ -268,7 +268,7 @@ def run_cumulus(directories, sample_dicts, sample_tracking, alto_workspace, alto
     bash_alto.close()
 
     logging.info("STEP 6 | Initiate Terra cumulus pipeline via alto. ")
-    execute_alto_command(run_alto_file)
+    execute_alto_command(run_alto_file, terra_timeout)
 
 
 def upload_cell_bender_input(buckets, directories, sample_dicts, sample_tracking, count_matrix_name, version):
@@ -325,7 +325,7 @@ def upload_cell_bender_input(buckets, directories, sample_dicts, sample_tracking
     bash_execute_file(uploadcellbender_file)
 
 
-def run_cellbender(directories, sample_dicts, sample_tracking, alto_workspace, alto_method, alto_cellbender_folder):
+def run_cellbender(directories, sample_dicts, sample_tracking, alto_workspace, alto_method, alto_cellbender_folder, terra_timeout):
     sample_dict = sample_dicts['sample']
     cellbender_dir = directories['cellbender']
 
@@ -341,7 +341,7 @@ def run_cellbender(directories, sample_dicts, sample_tracking, alto_workspace, a
     bash_alto.close()
 
     logging.info("STEP 8 | Initiate Terra remove-background pipeline via alto. ")
-    execute_alto_command(run_alto_file)
+    execute_alto_command(run_alto_file, terra_timeout)
 
 
 def upload_post_cellbender_cumulus_input(buckets, directories, sample_dicts, sample_tracking, cellbender_matrix_name):
@@ -393,7 +393,7 @@ def upload_post_cellbender_cumulus_input(buckets, directories, sample_dicts, sam
     bash_execute_file(uploadcellbendercumulus_file)
 
 
-def run_cumulus_post_cellbender(directories, sample_dicts, sample_tracking, alto_workspace, alto_method, alto_results_folder):
+def run_cumulus_post_cellbender(directories, sample_dicts, sample_tracking, alto_workspace, alto_method, alto_results_folder, terra_timeout):
     sample_dict = sample_dicts['sample']
     cellbender_results_dir = directories['cellbender_results']
 
@@ -408,7 +408,7 @@ def run_cumulus_post_cellbender(directories, sample_dicts, sample_tracking, alto
     bash_alto.close()
 
     logging.info("STEP 10 | Initiate Terra cumulus pipeline via alto. ")
-    execute_alto_command(run_alto_file)
+    execute_alto_command(run_alto_file, terra_timeout)
 
 
 def upload_cellranger_arc_samplesheet(buckets, directories, sample_tracking, cellranger_arc_version,
@@ -463,7 +463,7 @@ def upload_cellranger_arc_samplesheet(buckets, directories, sample_tracking, cel
     bash_execute_file(upload_arc_file)
 
 
-def run_cellranger_arc(buckets, directories, alto_method, alto_workspace):
+def run_cellranger_arc(buckets, directories, alto_method, alto_workspace, terra_timeout):
     arc_dir = directories['cellranger_arc']
     arc_bucket = buckets['cellranger_arc']
 
@@ -474,4 +474,4 @@ def run_cellranger_arc(buckets, directories, alto_method, alto_workspace):
         f.write(f"alto terra run -m {alto_method} -i {input_arc_file} -w {alto_workspace} --bucket-folder {arc_bucket}\n")
 
     logging.info("STEP 6 | Initiate Terra cumulus pipeline via alto. ")
-    execute_alto_command(run_alto_file)
+    execute_alto_command(run_alto_file, terra_timeout)

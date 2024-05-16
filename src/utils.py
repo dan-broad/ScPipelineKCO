@@ -11,7 +11,7 @@ import firecloud.api as fapi
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from consts import TERRA_POLL_SPACER, TERRA_TIMEOUT, RNA, ATAC, GEX_I7_INDEX_KEY
+from consts import TERRA_POLL_SPACER, RNA, ATAC, GEX_I7_INDEX_KEY
 
 alto_lock = threading.Lock()
 
@@ -83,7 +83,7 @@ def build_sample_dicts(sample_tracking, sampleids):
     }
 
 
-def execute_alto_command(run_alto_file):
+def execute_alto_command(run_alto_file, terra_timeout):
     with alto_lock:
         command = "bash %s" % run_alto_file
         logging.info("Executing command: `{}`".format(command))
@@ -97,10 +97,10 @@ def execute_alto_command(run_alto_file):
         sys.exit()
 
     for status_url in alto_outputs:
-        wait_for_terra_submission(status_url)
+        wait_for_terra_submission(status_url, terra_timeout)
 
 
-def wait_for_terra_submission(status_url):
+def wait_for_terra_submission(status_url, terra_timeout):
     logging.info("Job status: %s" % status_url)
     entries = status_url.split('/')
     workspace_namespace, workspace_name, submission_id = [entries[idx] for idx in [-4, -3, -1]]
@@ -112,7 +112,7 @@ def wait_for_terra_submission(status_url):
         logging.info("Job status: %s " % status)
         time.sleep(TERRA_POLL_SPACER)
         response = fapi.get_submission(workspace_namespace, workspace_name, submission_id)
-        if (time.time() - start_time) > TERRA_TIMEOUT:
+        if (time.time() - start_time) > terra_timeout:
             logging.info("Terra pipeline took too long to complete.")
             sys.exit()
     status = {k: v for k, v in response.json().items() if k in ['status', 'submissionDate', 'submissionId']}

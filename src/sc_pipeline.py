@@ -39,6 +39,8 @@ bcl_convert_lane_splitting = eval(os.getenv("BCL_CONVERT_LANE_SPLITTING", defaul
 bcl_convert_num_lanes = int(os.getenv("NUM_LANES_FLOWCELL", default="0"))
 bcl_convert_gex_i5_index_key = os.getenv("GEX_I5_INDEX_KEY", default='index2_workflow_a(i5)')
 bcl_convert_docker_registry = os.getenv("BCL_CONVERT_DOCKER_REGISTRY", default="us-docker.pkg.dev/microbiome-xavier/broad-microbiome-xavier")
+# global configs
+terra_timeout = int(os.getenv("TERRA_TIMEOUT", default='18000'))
 
 """
 Set global variables
@@ -107,7 +109,8 @@ def process_bcl_convert(sample_tracking):
         buckets, 
         paths, 
         bcl_convert_method, 
-        alto_workspace
+        alto_workspace,
+        terra_timeout
     )
     
     if env_vars["no_lane_splitting"]:
@@ -149,7 +152,8 @@ def process_rna_flowcell(seq_dir):
             sample_tracking,
             alto_workspace,
             cellranger_method,
-            alto_dirs['alto_fastqs']
+            alto_dirs['alto_fastqs'],
+            terra_timeout
         )
 
     if "COUNT" in steps_to_run:
@@ -169,7 +173,8 @@ def process_rna_flowcell(seq_dir):
             sample_tracking,
             alto_workspace,
             cellranger_method,
-            alto_dirs['alto_counts']
+            alto_dirs['alto_counts'],
+            terra_timeout
         )
 
     if "CUMULUS" in steps_to_run:
@@ -188,7 +193,8 @@ def process_rna_flowcell(seq_dir):
             sample_tracking,
             alto_workspace,
             cumulus_method,
-            alto_dirs['alto_results']
+            alto_dirs['alto_results'],
+            terra_timeout
         )
 
     if "CELLBENDER" in steps_to_run:
@@ -208,7 +214,8 @@ def process_rna_flowcell(seq_dir):
             sample_tracking,
             alto_workspace,
             cellbender_method,
-            alto_dirs['alto_cellbender']
+            alto_dirs['alto_cellbender'],
+            terra_timeout
         )
 
     if "CELLBENDER_CUMULUS" in steps_to_run:
@@ -227,7 +234,8 @@ def process_rna_flowcell(seq_dir):
             sample_tracking,
             alto_workspace,
             cumulus_method,
-            alto_dirs['alto_results']
+            alto_dirs['alto_results'],
+            terra_timeout
         )
 
 
@@ -264,7 +272,7 @@ def process_multiome():
 
     steps.upload_cellranger_arc_samplesheet(buckets, directories, sample_tracking, cellranger_arc_version,
                                             mkfastq_disk_space, mkfastq_memory, steps_to_run)
-    steps.run_cellranger_arc(buckets, directories, cellranger_method, alto_workspace)
+    steps.run_cellranger_arc(buckets, directories, cellranger_method, alto_workspace, terra_timeout)
 
 
 if __name__ == "__main__":
