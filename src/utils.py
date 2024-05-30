@@ -192,7 +192,7 @@ def get_atac_sample_sheet(env_vars, sample_tracking, num_lanes):
         flattend_sample_indices.drop(columns='Lane', inplace=True)
     else:
         flattend_sample_indices = apply_lane_splits(flattend_sample_indices, num_lanes)
-        flattend_sample_indices = flattend_sample_indices.get(['Lane', 'Sample_ID', 'index', 'index2']) #reorder columns
+        flattend_sample_indices = flattend_sample_indices.get(['Lane', 'Sample_ID', 'index']) #reorder columns
 
     return sample_sheet + flattend_sample_indices.to_csv(index=False)
 
