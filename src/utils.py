@@ -219,17 +219,16 @@ def replace_index(samples, method, i5_index_key=None):
             samples.loc[i, 'index'] = index_oligonucleotide
 
 def apply_lane_splits(sample_tracking, num_lanes):
-    for _, sample in sample_tracking.iterrows():
+    for i, sample in sample_tracking.iterrows():
         lane_val = str(sample['Lane'])
 
         if len(lane_val) == 1 and lane_val.isdecimal(): # no need to split
-            sample['Lane'] = sample['Lane'].to_list()
+            sample_tracking.loc[i, 'Lane'] = sample['Lane'].to_list()
         elif '-' in lane_val:
             start, end = lane_val.split('-')
-            sample['Lane'] = list(range(int(start), int(end)+1))
+            sample_tracking.loc[i, 'Lane'] = list(range(int(start), int(end)+1))
         elif lane_val == '*':
-            sample['Lane'] = list(range(1, num_lanes+1))
-
+            sample_tracking.loc[i, 'Lane'] = list(range(1, num_lanes+1))
     return sample_tracking.explode('Lane')
 
 def create_bcl_convert_params(file_path, env_vars, input_dir, fastq_output_dir, sample_sheet_path):
