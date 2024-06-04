@@ -471,7 +471,7 @@ def run_cellranger_arc(buckets, directories, alto_method, alto_workspace, terra_
 
     with open(run_alto_file, "w") as f:
         input_arc_file = f"{arc_dir}/arc/input_arc.json"
-        f.write(f"alto terra run -m {alto_method} -i {input_arc_file} -w {alto_workspace} --bucket-folder {arc_bucket}\n")
+        f.write(f"alto terra run -m {alto_method} -i {input_arc_file} -w {alto_workspace} --bucket-folder {arc_bucket} --no-cache\n")
 
     logging.info("STEP 6 | Initiate Terra cumulus pipeline via alto. ")
     execute_alto_command(run_alto_file, terra_timeout)
