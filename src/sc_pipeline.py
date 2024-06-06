@@ -113,7 +113,7 @@ def process_bcl_convert(sample_tracking):
         terra_timeout
     )
     
-    if env_vars["no_lane_splitting"]:
+    if env_vars["no_lane_splitting"] or sample_tracking["method"][0] == MULTIOME:
         steps.move_fastqs_to_sample_dir(directories, buckets, sample_tracking)
 
 def process_rna_flowcell(seq_dir):
